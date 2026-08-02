@@ -9,6 +9,7 @@ import authRoutes from './routes/authRoutes.js';
 import Order from './models/Order.js';
 import Product from './models/Product.js';
 import Customer from './models/Customer.js';
+import { protect } from './middleware/authMiddleware.js';
 
 dotenv.config();
 connectDB();
@@ -24,7 +25,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/auth', authRoutes);
 
-app.get('/api/dashboard/stats', async (req, res) => {
+app.get('/api/dashboard/stats', protect, async (req, res) => {
   try {
     const orders = await Order.find({});
     const totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);

@@ -2,10 +2,11 @@
 import express from 'express';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
+import Customer from '../models/Customer.js';
 
 const router = express.Router();
 
-// GET: Lấy toàn bộ lịch sử đơn hàng để thống kê Dòng tiền
+// GET: Lấy toàn bộ lịch sử đơn hàng
 router.get('/', async (req, res) => {
   try {
     const orders = await Order.find({}).sort({ createdAt: -1 });
@@ -15,10 +16,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST: Tạo đơn hàng mới và trừ kho (Lúc thanh toán)
+// POST: Tạo đơn hàng mới, trừ kho và cập nhật lịch sử mua hàng cho khách (CHỈ GIỮ LẠI DUY NHẤT 1 HÀM NÀY)
 router.post('/', async (req, res) => {
   try {
-    const { items, totalAmount } = req.body;
+    const { items, totalAmount, customer } = req.body;
 
     for (let item of items) {
       const product = await Product.findById(item.product);
@@ -33,6 +34,7 @@ router.post('/', async (req, res) => {
 
     const newOrder = new Order({
       orderCode,
+      customer: customer || null,
       items,
       totalAmount,
       paidAmount: totalAmount,
@@ -42,6 +44,7 @@ router.post('/', async (req, res) => {
 
     const savedOrder = await newOrder.save();
 
+    // Trừ tồn kho sản phẩm
     for (let item of items) {
       await Product.findByIdAndUpdate(
         item.product,
@@ -49,20 +52,22 @@ router.post('/', async (req, res) => {
       );
     }
 
+    // Cập nhật chi tiêu cho khách hàng nếu có chọn
+    if (customer) {
+      await Customer.findByIdAndUpdate(
+        customer,
+        { 
+          $inc: { 
+            totalPurchases: 1,
+            totalSpent: totalAmount
+          } 
+        }
+      );
+    }
+
     res.status(201).json(savedOrder);
   } catch (error) {
     res.status(500).json({ message: 'Lỗi server khi tạo đơn hàng: ' + error.message });
-  }
-});
-
-// GET: Lấy toàn bộ lịch sử đơn hàng để thống kê
-router.get('/', async (req, res) => {
-  try {
-    // Lấy tất cả đơn hàng, sắp xếp theo thời gian mới nhất lên đầu
-    const orders = await Order.find({}).sort({ createdAt: -1 });
-    res.json(orders);
-  } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi lấy danh sách đơn hàng: ' + error.message });
   }
 });
 

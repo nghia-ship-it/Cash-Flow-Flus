@@ -8,6 +8,7 @@ const orderItemSchema = new mongoose.Schema({
 
 const orderSchema = new mongoose.Schema({
   orderCode: { type: String, required: true, unique: true },
+  customer: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', default: null }, // <-- THÊM DÒNG NÀY VÀO
   items: [orderItemSchema],
   totalAmount: { type: Number, required: true },    
   paidAmount: { type: Number, default: 0 },         

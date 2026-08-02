@@ -1,27 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Input, Button, Table, message, InputNumber, Divider, Empty } from 'antd';
-import { SearchOutlined, ShoppingCartOutlined, DeleteOutlined, PayCircleOutlined } from '@ant-design/icons';
+import { Card, Input, Button, Table, message, InputNumber, Divider, Select, Empty } from 'antd';
+import { SearchOutlined, ShoppingCartOutlined, DeleteOutlined, PayCircleOutlined, UserOutlined } from '@ant-design/icons';
 import API from '../services/api';
 
 export default function OrderScreen() {
   const [products, setProducts] = useState([]);
-  const [cart, setCart] = useState([]); // State lưu giỏ hàng
+  const [customers, setCustomers] = useState([]); // State danh sách khách hàng
+  const [selectedCustomer, setSelectedCustomer] = useState(undefined); // Khách được chọn
+  const [cart, setCart] = useState([]); 
   const [searchText, setSearchText] = useState('');
 
-  // 1. Tải danh sách sản phẩm từ kho
-  const fetchProducts = async () => {
+  // 1. Tải danh sách sản phẩm và khách hàng cùng lúc
+  const fetchData = async () => {
     try {
-      const response = await API.get('/products');
-      // Chỉ lấy hàng ĐANG BÁN và TỒN KHO > 0
-      const availableProducts = response.data.filter(p => p.status === 'ACTIVE' && p.stockQuantity > 0);
-      setProducts(availableProducts);
+      const [prodRes, custRes] = await Promise.all([
+        API.get('/products'),
+        API.get('/customers')
+      ]);
+      setProducts(prodRes.data.filter(p => p.status === 'ACTIVE' && p.stockQuantity > 0));
+      setCustomers(custRes.data);
     } catch (error) {
-      message.error('Lỗi khi tải danh sách sản phẩm!');
+      message.error('Lỗi khi tải dữ liệu!');
     }
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchData();
   }, []);
 
   // 2. Logic Thêm vào giỏ hàng
@@ -29,7 +33,6 @@ export default function OrderScreen() {
     const existingItem = cart.find(item => item._id === product._id);
     
     if (existingItem) {
-      // Nếu đã có trong giỏ thì tăng số lượng, nhưng không được vượt tồn kho
       if (existingItem.quantity >= product.stockQuantity) {
         message.warning(`Trong kho chỉ còn đúng ${product.stockQuantity} cái thôi mày!`);
         return;
@@ -38,7 +41,6 @@ export default function OrderScreen() {
         item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item
       ));
     } else {
-      // Nếu chưa có thì thêm mới vào giỏ với số lượng = 1
       setCart([...cart, { ...product, quantity: 1 }]);
     }
   };
@@ -46,7 +48,7 @@ export default function OrderScreen() {
   // 3. Logic Cập nhật số lượng trực tiếp trong giỏ
   const updateQuantity = (id, value) => {
     if (value <= 0) {
-      removeCartItem(id); // Nếu tụt xuống 0 thì xóa luôn
+      removeCartItem(id); 
       return;
     }
     const product = products.find(p => p._id === id);
@@ -118,29 +120,27 @@ export default function OrderScreen() {
   // Hàm xử lý thanh toán
   const handleCheckout = async () => {
     if (cart.length === 0) return;
-
-    // 1. Chế biến lại dữ liệu giỏ hàng cho đúng chuẩn Backend cần
     const orderItems = cart.map(item => ({
-      product: item._id,       // Gửi ID sản phẩm
-      quantity: item.quantity, // Số lượng mua
-      price: item.sellPrice    // Chốt giá bán tại thời điểm này (lỡ sau này đổi giá thì đơn cũ không bị ảnh hưởng)
+      product: item._id,      
+      quantity: item.quantity, 
+      price: item.sellPrice    
     }));
 
     try {
-      // 2. Bắn API lưu đơn
       await API.post('/orders', {
+        customer: selectedCustomer || null, // Gửi ID khách hàng được chọn lên Backend
         items: orderItems,
         totalAmount: totalAmount
       });
 
       message.success('Chốt đơn thành công! Tiền đã vào túi, hàng đã trừ kho!');
       
-      // 3. Dọn dẹp chiến trường chuẩn bị đón khách tiếp theo
-      setCart([]);      // Xóa trắng giỏ hàng
-      fetchProducts();  // Tải lại danh sách sản phẩm (để nó cập nhật số lượng tồn kho mới nhất)
+      // Dọn dẹp chiến trường
+      setCart([]);      
+      setSelectedCustomer(undefined); // Reset lại ô chọn khách
+      fetchProducts();  
       
     } catch (error) {
-      // Nếu Backend báo lỗi (như hết hàng), hiện lỗi lên
       message.error(error.response?.data?.message || 'Có lỗi xảy ra khi thanh toán!');
     }
   };
@@ -160,7 +160,7 @@ export default function OrderScreen() {
         />
         
         {/* Lưới sản phẩm */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto pr-2" style={{ maxHeight: '65vh' }}>
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto pr-2" style={{ maxHeight: '60vh' }}>
           {filteredProducts.map(product => (
             <div 
               key={product._id} 
@@ -185,9 +185,9 @@ export default function OrderScreen() {
         </div>
       </div>
 
-      {/* CỘT PHẢI: GIỎ HÀNG */}
-      <div className="w-full lg:w-5/12 xl:w-1/3 bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col h-[75vh]">
-        <div className="flex justify-between items-center mb-4">
+      {/* CỘT PHẢI: GIỎ HÀNG & CHỌN KHÁCH HÀNG */}
+      <div className="w-full lg:w-5/12 xl:w-1/3 bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col">
+        <div className="flex justify-between items-center mb-3">
           <h2 className="text-xl font-bold flex items-center gap-2">
             <ShoppingCartOutlined /> Giỏ Hàng
           </h2>
@@ -196,8 +196,25 @@ export default function OrderScreen() {
           </span>
         </div>
 
+        {/* Ô CHỌN KHÁCH HÀNG NẰM Ở ĐÂY */}
+        <div className="mb-3">
+          <label className="block text-xs font-bold text-gray-500 mb-1">KHÁCH MUA HÀNG:</label>
+          <Select
+            showSearch
+            allowClear
+            size="large"
+            placeholder="Chọn khách (hoặc để trống nếu vãng lai)"
+            optionFilterProp="children"
+            className="w-full"
+            value={selectedCustomer}
+            onChange={(val) => setSelectedCustomer(val)}
+            options={customers.map(c => ({ value: c._id, label: `${c.name} - ${c.phone}` }))}
+            suffixIcon={<UserOutlined />}
+          />
+        </div>
+
         {/* Bảng chi tiết giỏ hàng */}
-        <div className="flex-1 overflow-y-auto bg-white rounded-lg border border-gray-100">
+        <div className="flex-1 overflow-y-auto bg-white rounded-lg border border-gray-100 mb-3" style={{ maxHeight: '35vh' }}>
           <Table 
             dataSource={cart.map(item => ({ ...item, key: item._id }))} 
             columns={cartColumns} 
@@ -208,12 +225,12 @@ export default function OrderScreen() {
         </div>
 
         {/* Tổng kết tính tiền */}
-        <div className="mt-4 bg-white p-4 rounded-lg border border-gray-200">
+        <div className="bg-white p-4 rounded-lg border border-gray-200 mt-auto">
           <div className="flex justify-between items-center mb-2">
             <span className="text-gray-500">Khách phải trả:</span>
             <span className="text-2xl font-black text-blue-600">{totalAmount.toLocaleString()} đ</span>
           </div>
-          <Divider className="my-3" />
+          <Divider className="my-2" />
           <Button 
             type="primary" 
             size="large" 
