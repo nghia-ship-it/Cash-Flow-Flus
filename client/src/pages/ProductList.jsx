@@ -177,7 +177,7 @@ export default function ProductList() {
       >
         <Form form={form} layout="vertical" onFinish={handleSaveProduct} className="mt-4">
           <Form.Item label="Mã SKU" name="sku" rules={[{ required: true, message: 'Vui lòng nhập mã SKU!' }]}>
-            <Input placeholder="VD: SP001" disabled={!!editingId} /> {/* Đang sửa thì cấm đổi mã SKU */}
+            <Input placeholder="VD: SP001" disabled={!!editingId} /> 
           </Form.Item>
           
           <Form.Item label="Tên sản phẩm" name="name" rules={[{ required: true, message: 'Vui lòng nhập tên sản phẩm!' }]}>
@@ -186,11 +186,21 @@ export default function ProductList() {
 
           <div className="flex gap-4">
             <Form.Item label="Giá nhập" name="importPrice" className="w-1/2" rules={[{ required: true, message: 'Nhập giá vốn!' }]}>
-              <InputNumber className="w-full" formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} suffix="VND" />
+              <InputNumber 
+                className="w-full" 
+                formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} 
+                parser={value => value ? value.toString().replace(/,/g, '') : ''} 
+                suffix="VND" 
+              />
             </Form.Item>
 
             <Form.Item label="Giá bán" name="sellPrice" className="w-1/2" rules={[{ required: true, message: 'Nhập giá bán!' }]}>
-              <InputNumber className="w-full" formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} suffix="VND" />
+              <InputNumber 
+                className="w-full" 
+                formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} 
+                parser={value => value ? value.toString().replace(/,/g, '') : ''} 
+                suffix="VND" 
+              />
             </Form.Item>
           </div>
 

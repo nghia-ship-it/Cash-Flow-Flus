@@ -55,4 +55,15 @@ router.post('/', async (req, res) => {
   }
 });
 
+// GET: Lấy toàn bộ lịch sử đơn hàng để thống kê
+router.get('/', async (req, res) => {
+  try {
+    // Lấy tất cả đơn hàng, sắp xếp theo thời gian mới nhất lên đầu
+    const orders = await Order.find({}).sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi khi lấy danh sách đơn hàng: ' + error.message });
+  }
+});
+
 export default router;

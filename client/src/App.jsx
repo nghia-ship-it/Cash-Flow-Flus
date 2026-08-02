@@ -1,21 +1,34 @@
-// src/App.jsx
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import ProductList from './pages/ProductList';
 import OrderScreen from './pages/OrderScreen';
+import CashFlow from './pages/CashFlow';
+import CustomerList from './pages/CustomerList';
+import Login from './pages/Login';
+import StaffList from './pages/StaffList';
+import Dashboard from './pages/Dashboard';
+
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<MainLayout />}>
-          {/* Tạm thời tao để các thẻ <div> chữ to làm nội dung mẫu cho các trang */}
-          <Route index element={<h1 className="text-2xl font-bold">Trang Tổng quan (Dashboard)</h1>} />
-          <Route path="orders" element={<OrderScreen path="orders"/>} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+          <Route index element={<Dashboard index/>} />
+          <Route path="orders" element={<OrderScreen />} />
           <Route path="products" element={<ProductList />} />
-          <Route path="cash-flow" element={<h1 className="text-2xl font-bold text-blue-600">Màn hình Quản lý Dòng tiền</h1>} />
-          <Route path="customers" element={<h1 className="text-2xl font-bold text-purple-600">Màn hình Quản lý Khách hàng</h1>} />
+          <Route path="cash-flow" element={<CashFlow />} />
+          <Route path="customers" element={<CustomerList />} />
+          <Route path="staff" element={<StaffList/>} />
         </Route>
       </Routes>
     </BrowserRouter>

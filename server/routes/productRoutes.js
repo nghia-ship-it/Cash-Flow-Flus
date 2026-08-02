@@ -1,10 +1,11 @@
 import express from 'express';
 import Product from '../models/Product.js';
+import { protect, adminOnly } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // GET: Lấy danh sách sản phẩm
-router.get('/', async (req, res) => {
+router.get('/',protect, async (req, res) => {
   try {
     const products = await Product.find({});
     res.json(products);
@@ -14,7 +15,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST: Thêm sản phẩm mới
-router.post('/', async (req, res) => {
+router.post('/',protect, async (req, res) => {
   try {
     const newProduct = new Product(req.body);
     const savedProduct = await newProduct.save();
@@ -25,7 +26,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT: Cập nhật thông tin sản phẩm
-router.put('/:id', async (req, res) => {
+router.put('/:id',protect, async (req, res) => {
   try {
     // Tìm sản phẩm theo ID truyền vào và cập nhật dữ liệu mới (req.body)
     const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -36,7 +37,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE: Xóa sản phẩm
-router.delete('/:id', async (req, res) => {
+router.delete('/:id',protect, async (req, res) => {
   try {
     await Product.findByIdAndDelete(req.params.id);
     res.json({ message: 'Đã xóa sản phẩm thành công!' });

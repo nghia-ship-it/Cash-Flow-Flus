@@ -5,7 +5,8 @@ import {
   ShoppingCartOutlined, 
   AppstoreOutlined, 
   DollarOutlined, 
-  TeamOutlined 
+  TeamOutlined,
+  UserOutlined 
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 
@@ -16,13 +17,25 @@ export default function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const menuItems = [
+  // 1. Lấy thông tin user đang đăng nhập từ localStorage
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  // 2. Các tab cơ bản dành cho nhân viên (STAFF)
+  const baseMenuItems = [
     { key: '/', icon: <DashboardOutlined />, label: 'Tổng quan' },
     { key: '/orders', icon: <ShoppingCartOutlined />, label: 'Bán hàng' },
-    { key: '/products', icon: <AppstoreOutlined />, label: 'Kho & Sản phẩm' },
-    { key: '/cash-flow', icon: <DollarOutlined />, label: 'Thu Chi & Dòng tiền' },
     { key: '/customers', icon: <TeamOutlined />, label: 'Khách hàng' },
   ];
+
+  // 3. Nếu là ADMIN (Sếp) thì mọc thêm Kho, Dòng tiền và Quản lý nhân sự
+  const menuItems = user.role === 'ADMIN' 
+    ? [
+        ...baseMenuItems,
+        { key: '/products', icon: <AppstoreOutlined />, label: 'Kho & Sản phẩm' },
+        { key: '/cash-flow', icon: <DollarOutlined />, label: 'Thu Chi & Dòng tiền' },
+        { key: '/staff', icon: <UserOutlined />, label: 'Quản lý Nhân sự' },
+      ]
+    : baseMenuItems;
 
   return (
     <Layout className="min-h-screen">
@@ -51,7 +64,8 @@ export default function MainLayout() {
           <div className="font-semibold text-lg text-gray-700">Hệ thống Quản trị Doanh nghiệp</div>
           <div className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 px-3 rounded-lg transition-colors">
             <Avatar src="https://api.dicebear.com/7.x/miniavs/svg?seed=Admin" className="bg-blue-100" />
-            <span className="text-gray-600 font-medium hidden sm:block">Admin</span>
+            {/* Hiển thị tên tài khoản đang đăng nhập thay vì fix cứng chữ Admin */}
+            <span className="text-gray-600 font-medium hidden sm:block">{user.name || 'Người dùng'}</span>
           </div>
         </Header>
 
